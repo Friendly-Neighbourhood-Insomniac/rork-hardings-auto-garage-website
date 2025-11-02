@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+
+import { StyledText } from './components/StyledText';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   Image,
@@ -10,10 +11,12 @@ import {
   Pressable,
   Linking,
   Platform,
+  FlatList,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Video } from 'expo-av';
 import {
   Wrench,
   Zap,
@@ -25,20 +28,11 @@ import {
   Clock,
   Users,
   Star,
+  ChevronDown,
 } from 'lucide-react-native';
+import  Colors  from '../constants/colors';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-const COLORS = {
-  primary: '#1e3a8a',
-  secondary: '#dc2626',
-  dark: '#0f172a',
-  darkGray: '#1e293b',
-  metallic: '#334155',
-  lightGray: '#64748b',
-  white: '#ffffff',
-  accent: '#3b82f6',
-};
 
 const SERVICES = [
   {
@@ -95,11 +89,47 @@ const STATS = [
   { label: 'Rating', value: '5.0', icon: 'star' },
 ];
 
+const ServiceCard = ({ service }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(scaleAnim, {
+      toValue: isHovered ? 1.05 : 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [isHovered, scaleAnim]);
+
+  return (
+    <Pressable
+      onHoverIn={() => setIsHovered(true)}
+      onHoverOut={() => setIsHovered(false)}
+      style={styles.serviceCardPressable}
+    >
+      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+        <LinearGradient
+          colors={[Colors.darkGray, Colors.metallic]}
+          style={styles.serviceCardGradient}
+        >
+          <View style={styles.serviceIconContainer}>
+            {getServiceIcon(service.icon)}
+          </View>
+          <StyledText variant='heading' style={styles.serviceTitle}>{service.title}</StyledText>
+          <StyledText style={styles.serviceDescription}>{service.description}</StyledText>
+          <View style={styles.serviceCorner} />
+          <StyledText style={styles.learnMore}>Learn more</StyledText>
+        </LinearGradient>
+      </Animated.View>
+    </Pressable>
+  );
+};
+
 export default function HardingsAutoGarage() {
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-
+  const bounceAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -107,7 +137,22 @@ export default function HardingsAutoGarage() {
       duration: 1000,
       useNativeDriver: true,
     }).start();
-  }, [fadeAnim]);
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounceAnim, {
+          toValue: 10,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounceAnim, {
+          toValue: 0,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [fadeAnim, bounceAnim]);
 
   const handleCall = () => {
     Linking.openURL('tel:+27762683721');
@@ -128,7 +173,7 @@ export default function HardingsAutoGarage() {
   };
 
   const getServiceIcon = (iconName: string) => {
-    const iconProps = { size: 32, color: COLORS.secondary, strokeWidth: 2 };
+    const iconProps = { size: 32, color: Colors.secondary, strokeWidth: 2 };
     switch (iconName) {
       case 'wrench':
         return <Wrench {...iconProps} />;
@@ -146,7 +191,7 @@ export default function HardingsAutoGarage() {
   };
 
   const getStatIcon = (iconName: string) => {
-    const iconProps = { size: 28, color: COLORS.accent, strokeWidth: 2.5 };
+    const iconProps = { size: 28, color: Colors.accent, strokeWidth: 2.5 };
     switch (iconName) {
       case 'clock':
         return <Clock {...iconProps} />;
@@ -161,14 +206,6 @@ export default function HardingsAutoGarage() {
     }
   };
 
-  const logoScale = scrollY.interpolate({
-    inputRange: [0, 200],
-    outputRange: [1, 0.7],
-    extrapolate: 'clamp',
-  });
-
-
-
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -182,39 +219,21 @@ export default function HardingsAutoGarage() {
         )}
         scrollEventThrottle={16}
       >
-        <LinearGradient
-          colors={[COLORS.dark, COLORS.darkGray, COLORS.dark]}
-          style={[styles.heroSection, { paddingTop: Math.max(insets.top + 20, 40) }]}
-        >
-          <Animated.View
-            style={[
-              styles.logoContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ scale: logoScale }, { translateY: scrollY.interpolate({
-                  inputRange: [0, 200],
-                  outputRange: [0, -30],
-                  extrapolate: 'clamp',
-                }) }],
-              },
-            ]}
-          >
-            <Image
-              source={{
-                uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/iwnfqpqat4zr67rs8a8pc',
-              }}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-          </Animated.View>
-
+        <View style={[styles.heroSection, { paddingTop: Math.max(insets.top, 0) }]}>
+          <FlatList
+            data={GALLERY_IMAGES}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => (
+              <Image source={{ uri: item }} style={styles.heroImage} />
+            )}
+          />
+          <View style={styles.heroOverlay} />
           <Animated.View style={[styles.heroContent, { opacity: fadeAnim }]}>
-            <View style={styles.divider} />
-            <Text style={styles.tagline}>PRECISION. PERFORMANCE. PERFECTION.</Text>
-            <Text style={styles.heroDescription}>
-              Expert mechanical work, performance upgrades, and reliable servicing in Swartruggens
-            </Text>
-            
+            <StyledText variant='heading' style={styles.mainHeadline}>Trusted Auto Repairs & Service</StyledText>
+            <StyledText style={styles.subHeadline}>15+ years keeping you on the road</StyledText>
             <View style={styles.ctaButtons}>
               <Pressable
                 style={({ pressed }) => [
@@ -223,8 +242,8 @@ export default function HardingsAutoGarage() {
                 ]}
                 onPress={handleCall}
               >
-                <Phone size={20} color={COLORS.white} strokeWidth={2.5} />
-                <Text style={styles.primaryButtonText}>Call Now</Text>
+                <Phone size={20} color={Colors.white} strokeWidth={2.5} />
+                <StyledText style={styles.primaryButtonText}>Book Service</StyledText>
               </Pressable>
 
               <Pressable
@@ -234,16 +253,19 @@ export default function HardingsAutoGarage() {
                 ]}
                 onPress={handleWhatsApp}
               >
-                <Text style={styles.secondaryButtonText}>WhatsApp</Text>
-                <ChevronRight size={20} color={COLORS.secondary} strokeWidth={2.5} />
+                <StyledText style={styles.secondaryButtonText}>WhatsApp</StyledText>
+                <ChevronRight size={20} color={Colors.secondary} strokeWidth={2.5} />
               </Pressable>
             </View>
           </Animated.View>
-        </LinearGradient>
+          <Animated.View style={[styles.downArrowContainer, { transform: [{ translateY: bounceAnim }] }]}>
+            <ChevronDown size={32} color={Colors.white} />
+          </Animated.View>
+        </View>
 
         <View style={styles.statsSection}>
           <LinearGradient
-            colors={[COLORS.darkGray, COLORS.metallic]}
+            colors={[Colors.darkGray, Colors.metallic]}
             style={styles.statsGradient}
           >
             <View style={styles.statsGrid}>
@@ -252,8 +274,8 @@ export default function HardingsAutoGarage() {
                   <View style={styles.statIconContainer}>
                     {getStatIcon(stat.icon)}
                   </View>
-                  <Text style={styles.statValue}>{stat.value}</Text>
-                  <Text style={styles.statLabel}>{stat.label}</Text>
+                  <StyledText variant='heading' style={styles.statValue}>{stat.value}</StyledText>
+                  <StyledText style={styles.statLabel}>{stat.label}</StyledText>
                 </View>
               ))}
             </View>
@@ -264,45 +286,33 @@ export default function HardingsAutoGarage() {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleContainer}>
               <View style={styles.accentLine} />
-              <Text style={styles.sectionTitle}>OUR SERVICES</Text>
+              <StyledText variant='heading' style={styles.sectionTitle}>OUR SERVICES</StyledText>
             </View>
-            <Text style={styles.sectionSubtitle}>
+            <StyledText style={styles.sectionSubtitle}>
               Comprehensive automotive solutions tailored to your needs
-            </Text>
+            </StyledText>
           </View>
 
           <View style={styles.servicesGrid}>
             {SERVICES.map((service, index) => (
-              <View key={service.id} style={styles.serviceCard}>
-                <LinearGradient
-                  colors={[COLORS.darkGray, COLORS.metallic]}
-                  style={styles.serviceCardGradient}
-                >
-                  <View style={styles.serviceIconContainer}>
-                    {getServiceIcon(service.icon)}
-                  </View>
-                  <Text style={styles.serviceTitle}>{service.title}</Text>
-                  <Text style={styles.serviceDescription}>{service.description}</Text>
-                  <View style={styles.serviceCorner} />
-                </LinearGradient>
-              </View>
+              <ServiceCard key={service.id} service={service} />
             ))}
           </View>
         </View>
 
         <View style={styles.gallerySection}>
           <LinearGradient
-            colors={[COLORS.dark, COLORS.darkGray]}
+            colors={[Colors.dark, Colors.darkGray]}
             style={styles.galleryGradient}
           >
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleContainer}>
                 <View style={styles.accentLine} />
-                <Text style={styles.sectionTitle}>OUR WORK</Text>
+                <StyledText variant='heading' style={styles.sectionTitle}>OUR WORK</StyledText>
               </View>
-              <Text style={styles.sectionSubtitle}>
+              <StyledText style={styles.sectionSubtitle}>
                 Showcasing excellence in every project
-              </Text>
+              </StyledText>
             </View>
 
             <ScrollView
@@ -314,7 +324,7 @@ export default function HardingsAutoGarage() {
                 <View key={index} style={styles.galleryImageContainer}>
                   <Image source={{ uri: image }} style={styles.galleryImage} />
                   <View style={styles.galleryOverlay}>
-                    <Text style={styles.galleryNumber}>0{index + 1}</Text>
+                    <StyledText variant='heading' style={styles.galleryNumber}>0{index + 1}</StyledText>
                   </View>
                 </View>
               ))}
@@ -324,37 +334,46 @@ export default function HardingsAutoGarage() {
 
         <View style={styles.aboutSection}>
           <View style={styles.aboutContent}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleContainer}>
-                <View style={styles.accentLine} />
-                <Text style={styles.sectionTitle}>ABOUT US</Text>
+            <View style={styles.aboutImageContainer}>
+              <Image source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/lmfvhoibkhgr2la6wyq21' }} style={styles.aboutImage} />
+            </View>
+            <View style={styles.aboutTextContainer}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionTitleContainer}>
+                  <View style={styles.accentLine} />
+                  <StyledText variant='heading' style={styles.sectionTitle}>ABOUT US</StyledText>
+                </View>
+                <StyledText style={styles.aboutText}>
+                  Hardings Auto Garage has built a strong reputation in Swartruggens for quality
+                  workmanship and customer satisfaction. We specialize in everything from routine
+                  servicing to complex performance upgrades and Lexus V8 engine conversions.
+                </StyledText>
+                <StyledText style={styles.aboutText}>
+                  Our team of expert technicians uses advanced diagnostic tools and state-of-the-art
+                  equipment to ensure your vehicle receives the best care possible.
+                </StyledText>
+                <Pressable style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}>
+                  <StyledText style={styles.secondaryButtonText}>View Portfolio</StyledText>
+                  <ChevronRight size={20} color={Colors.secondary} strokeWidth={2.5} />
+                </Pressable>
               </View>
-              <Text style={styles.aboutText}>
-                Hardings Auto Garage has built a strong reputation in Swartruggens for quality
-                workmanship and customer satisfaction. We specialize in everything from routine
-                servicing to complex performance upgrades and Lexus V8 engine conversions.
-              </Text>
-              <Text style={styles.aboutText}>
-                Our team of expert technicians uses advanced diagnostic tools and state-of-the-art
-                equipment to ensure your vehicle receives the best care possible.
-              </Text>
             </View>
           </View>
         </View>
 
         <View style={styles.contactSection}>
           <LinearGradient
-            colors={[COLORS.darkGray, COLORS.dark]}
+            colors={[Colors.darkGray, Colors.dark]}
             style={styles.contactGradient}
           >
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleContainer}>
                 <View style={styles.accentLine} />
-                <Text style={styles.sectionTitle}>GET IN TOUCH</Text>
+                <StyledText variant='heading' style={styles.sectionTitle}>GET IN TOUCH</StyledText>
               </View>
-              <Text style={styles.sectionSubtitle}>
+              <StyledText style={styles.sectionSubtitle}>
                 Visit us or reach out for expert automotive service
-              </Text>
+              </StyledText>
             </View>
 
             <View style={styles.contactCards}>
@@ -366,10 +385,10 @@ export default function HardingsAutoGarage() {
                 onPress={handleCall}
               >
                 <View style={styles.contactIconContainer}>
-                  <Phone size={24} color={COLORS.secondary} strokeWidth={2.5} />
+                  <Phone size={24} color={Colors.secondary} strokeWidth={2.5} />
                 </View>
-                <Text style={styles.contactLabel}>Phone</Text>
-                <Text style={styles.contactValue}>+27 76 268 3721</Text>
+                <StyledText style={styles.contactLabel}>Phone</StyledText>
+                <StyledText style={styles.contactValue}>+27 76 268 3721</StyledText>
               </Pressable>
 
               <Pressable
@@ -380,22 +399,23 @@ export default function HardingsAutoGarage() {
                 onPress={handleLocation}
               >
                 <View style={styles.contactIconContainer}>
-                  <MapPin size={24} color={COLORS.secondary} strokeWidth={2.5} />
+                  <MapPin size={24} color={Colors.secondary} strokeWidth={2.5} />
                 </View>
-                <Text style={styles.contactLabel}>Location</Text>
-                <Text style={styles.contactValue}>15 Liebenberg Street{'\n'}Swartruggens</Text>
+                <StyledText style={styles.contactLabel}>Location</StyledText>
+                <StyledText style={styles.contactValue}>15 Liebenberg Street{'
+'}Swartruggens</StyledText>
               </Pressable>
             </View>
           </LinearGradient>
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
+          <StyledText style={styles.footerText}>
             © 2025 Hardings Auto Garage. All rights reserved.
-          </Text>
-          <Text style={styles.footerSubtext}>
+          </StyledText>
+          <StyledText style={styles.footerSubtext}>
             Precision Engineering • Performance Tuning • Customer Excellence
-          </Text>
+          </StyledText>
         </View>
       </Animated.ScrollView>
     </View>
@@ -405,49 +425,51 @@ export default function HardingsAutoGarage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.dark,
+    backgroundColor: Colors.dark,
   },
   scrollView: {
     flex: 1,
   },
   heroSection: {
-    minHeight: SCREEN_HEIGHT * 0.85,
-    paddingHorizontal: 20,
-    paddingBottom: 60,
+    height: SCREEN_HEIGHT,
     justifyContent: 'center',
-  },
-  logoContainer: {
     alignItems: 'center',
-    marginBottom: 40,
   },
-  logo: {
-    width: SCREEN_WIDTH * 0.8,
-    height: 200,
+  heroImage: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+  },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   heroContent: {
     alignItems: 'center',
-  },
-  divider: {
-    width: 60,
-    height: 4,
-    backgroundColor: COLORS.secondary,
-    marginBottom: 20,
-  },
-  tagline: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.accent,
-    letterSpacing: 3,
-    textAlign: 'center',
-    marginBottom: 15,
-  },
-  heroDescription: {
-    fontSize: 16,
-    color: COLORS.lightGray,
-    textAlign: 'center',
-    lineHeight: 24,
     paddingHorizontal: 20,
-    marginBottom: 40,
+    position: 'absolute',
+  },
+  mainHeadline: {
+    fontSize: 48,
+    color: Colors.white,
+    textAlign: 'center',
+    marginBottom: 10,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: -1, height: 1 },
+    textShadowRadius: 10,
+  },
+  subHeadline: {
+    fontSize: 20,
+    color: Colors.lightGray,
+    textAlign: 'center',
+    marginBottom: 30,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: -1, height: 1 },
+    textShadowRadius: 10,
+  },
+  downArrowContainer: {
+    position: 'absolute',
+    bottom: 40,
+    alignSelf: 'center',
   },
   ctaButtons: {
     flexDirection: 'row',
@@ -458,12 +480,12 @@ const styles = StyleSheet.create({
   primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.secondary,
+    backgroundColor: Colors.secondary,
     paddingHorizontal: 30,
     paddingVertical: 16,
     borderRadius: 8,
     gap: 10,
-    shadowColor: COLORS.secondary,
+    shadowColor: Colors.secondary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
@@ -474,7 +496,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: COLORS.secondary,
+    borderColor: Colors.secondary,
     paddingHorizontal: 30,
     paddingVertical: 16,
     borderRadius: 8,
@@ -485,15 +507,13 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   primaryButtonText: {
-    color: COLORS.white,
+    color: Colors.white,
     fontSize: 16,
-    fontWeight: '700',
     letterSpacing: 0.5,
   },
   secondaryButtonText: {
-    color: COLORS.secondary,
+    color: Colors.secondary,
     fontSize: 16,
-    fontWeight: '700',
     letterSpacing: 0.5,
   },
   statsSection: {
@@ -525,13 +545,12 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 32,
-    fontWeight: '800',
-    color: COLORS.white,
+    color: Colors.white,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: COLORS.lightGray,
+    color: Colors.lightGray,
     textAlign: 'center',
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -542,36 +561,38 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     marginBottom: 40,
+    alignItems: 'flex-start',
   },
   sectionTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
     gap: 15,
+    alignSelf: 'flex-start',
   },
   accentLine: {
     width: 4,
     height: 32,
-    backgroundColor: COLORS.secondary,
+    backgroundColor: Colors.secondary,
+    marginRight: 15,
   },
   sectionTitle: {
     fontSize: 28,
-    fontWeight: '800',
-    color: COLORS.white,
+    color: Colors.white,
     letterSpacing: 2,
   },
   sectionSubtitle: {
     fontSize: 16,
-    color: COLORS.lightGray,
-    marginLeft: 19,
+    color: Colors.lightGray,
     lineHeight: 24,
+    marginLeft: 0,
   },
   servicesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 15,
   },
-  serviceCard: {
+  serviceCardPressable: {
     width: (SCREEN_WIDTH - 55) / 2,
     marginBottom: 5,
   },
@@ -588,14 +609,19 @@ const styles = StyleSheet.create({
   },
   serviceTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.white,
+    color: Colors.white,
     marginBottom: 8,
   },
   serviceDescription: {
     fontSize: 13,
-    color: COLORS.lightGray,
+    color: Colors.lightGray,
     lineHeight: 20,
+  },
+  learnMore: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.accent,
+    marginTop: 10,
   },
   serviceCorner: {
     position: 'absolute',
@@ -605,7 +631,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderTopRightRadius: 12,
     borderBottomLeftRadius: 40,
-    backgroundColor: COLORS.secondary,
+    backgroundColor: Colors.secondary,
     opacity: 0.1,
   },
   gallerySection: {
@@ -642,23 +668,43 @@ const styles = StyleSheet.create({
   },
   galleryNumber: {
     fontSize: 32,
-    fontWeight: '800',
-    color: COLORS.secondary,
+    color: Colors.secondary,
   },
   aboutSection: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
     paddingVertical: 60,
-    backgroundColor: COLORS.darkGray,
+    backgroundColor: Colors.darkGray,
   },
   aboutContent: {
+    paddingHorizontal: 0,
     maxWidth: 600,
+  },
+  aboutImageContainer: {
+    marginHorizontal: 20,
+    marginBottom: 30,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  aboutImage: {
+    width: '100%',
+    height: 250,
+    borderRadius: 16,
+  },
+  aboutTextContainer: {
+    paddingHorizontal: 20,
+    flex: 1,
   },
   aboutText: {
     fontSize: 16,
-    color: COLORS.lightGray,
+    color: Colors.lightGray,
     lineHeight: 26,
     marginBottom: 20,
-    marginLeft: 19,
+    marginLeft: 0,
   },
   contactSection: {
     paddingVertical: 60,
@@ -675,7 +721,7 @@ const styles = StyleSheet.create({
   contactCard: {
     flex: 1,
     minWidth: (SCREEN_WIDTH - 55) / 2,
-    backgroundColor: COLORS.metallic,
+    backgroundColor: Colors.metallic,
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
@@ -693,14 +739,14 @@ const styles = StyleSheet.create({
   },
   contactLabel: {
     fontSize: 12,
-    color: COLORS.lightGray,
+    color: Colors.lightGray,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 8,
   },
   contactValue: {
     fontSize: 14,
-    color: COLORS.white,
+    color: Colors.white,
     fontWeight: '600',
     textAlign: 'center',
     lineHeight: 20,
@@ -709,19 +755,19 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
     paddingHorizontal: 20,
     alignItems: 'center',
-    backgroundColor: COLORS.dark,
+    backgroundColor: Colors.dark,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(100, 116, 139, 0.2)',
+    borderTopColor: 'rgba(100, 116, 13.9, 0.2)',
   },
   footerText: {
     fontSize: 14,
-    color: COLORS.lightGray,
+    color: Colors.lightGray,
     marginBottom: 8,
     textAlign: 'center',
   },
   footerSubtext: {
     fontSize: 12,
-    color: COLORS.lightGray,
+    color: Colors.lightGray,
     opacity: 0.6,
     textAlign: 'center',
   },
