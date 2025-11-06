@@ -17,19 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Video } from 'expo-av';
-import {
-  Wrench,
-  Zap,
-  Shield,
-  Phone,
-  MapPin,
-  ChevronRight,
-  Award,
-  Clock,
-  Users,
-  Star,
-  ChevronDown,
-} from 'lucide-react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import  Colors  from '../constants/colors';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -173,36 +161,38 @@ export default function HardingsAutoGarage() {
   };
 
   const getServiceIcon = (iconName: string) => {
-    const iconProps = { size: 32, color: Colors.secondary, strokeWidth: 2 };
+    const size = 32;
+    const color = Colors.secondary;
     switch (iconName) {
       case 'wrench':
-        return <Wrench {...iconProps} />;
+        return <MaterialCommunityIcons name="wrench" size={size} color={color} />;
       case 'zap':
-        return <Zap {...iconProps} />;
+        return <Ionicons name="flash" size={size} color={color} />;
       case 'shield':
-        return <Shield {...iconProps} />;
+        return <Ionicons name="shield-checkmark" size={size} color={color} />;
       case 'award':
-        return <Award {...iconProps} />;
+        return <Ionicons name="trophy" size={size} color={color} />;
       case 'clock':
-        return <Clock {...iconProps} />;
+        return <Ionicons name="time" size={size} color={color} />;
       default:
-        return <Wrench {...iconProps} />;
+        return <MaterialCommunityIcons name="wrench" size={size} color={color} />;
     }
   };
 
   const getStatIcon = (iconName: string) => {
-    const iconProps = { size: 28, color: Colors.accent, strokeWidth: 2.5 };
+    const size = 28;
+    const color = Colors.accent;
     switch (iconName) {
       case 'clock':
-        return <Clock {...iconProps} />;
+        return <Ionicons name="time" size={size} color={color} />;
       case 'users':
-        return <Users {...iconProps} />;
+        return <Ionicons name="people" size={size} color={color} />;
       case 'award':
-        return <Award {...iconProps} />;
+        return <Ionicons name="trophy" size={size} color={color} />;
       case 'star':
-        return <Star {...iconProps} />;
+        return <Ionicons name="star" size={size} color={color} />;
       default:
-        return <Award {...iconProps} />;
+        return <Ionicons name="trophy" size={size} color={color} />;
     }
   };
 
@@ -242,7 +232,7 @@ export default function HardingsAutoGarage() {
                 ]}
                 onPress={handleCall}
               >
-                <Phone size={20} color={Colors.white} strokeWidth={2.5} />
+                <Ionicons name="call" size={20} color={Colors.white} />
                 <StyledText style={styles.primaryButtonText}>Book Service</StyledText>
               </Pressable>
 
@@ -254,12 +244,12 @@ export default function HardingsAutoGarage() {
                 onPress={handleWhatsApp}
               >
                 <StyledText style={styles.secondaryButtonText}>WhatsApp</StyledText>
-                <ChevronRight size={20} color={Colors.secondary} strokeWidth={2.5} />
+                <Ionicons name="chevron-forward" size={20} color={Colors.secondary} />
               </Pressable>
             </View>
           </Animated.View>
           <Animated.View style={[styles.downArrowContainer, { transform: [{ translateY: bounceAnim }] }]}>
-            <ChevronDown size={32} color={Colors.white} />
+            <Ionicons name="chevron-down" size={32} color={Colors.white} />
           </Animated.View>
         </View>
 
@@ -354,7 +344,7 @@ export default function HardingsAutoGarage() {
                 </StyledText>
                 <Pressable style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}>
                   <StyledText style={styles.secondaryButtonText}>View Portfolio</StyledText>
-                  <ChevronRight size={20} color={Colors.secondary} strokeWidth={2.5} />
+                  <Ionicons name="chevron-forward" size={20} color={Colors.secondary} />
                 </Pressable>
               </View>
             </View>
@@ -385,7 +375,7 @@ export default function HardingsAutoGarage() {
                 onPress={handleCall}
               >
                 <View style={styles.contactIconContainer}>
-                  <Phone size={24} color={Colors.secondary} strokeWidth={2.5} />
+                  <Ionicons name="call" size={24} color={Colors.secondary} />
                 </View>
                 <StyledText style={styles.contactLabel}>Phone</StyledText>
                 <StyledText style={styles.contactValue}>+27 76 268 3721</StyledText>
@@ -399,7 +389,7 @@ export default function HardingsAutoGarage() {
                 onPress={handleLocation}
               >
                 <View style={styles.contactIconContainer}>
-                  <MapPin size={24} color={Colors.secondary} strokeWidth={2.5} />
+                  <Ionicons name="location" size={24} color={Colors.secondary} />
                 </View>
                 <StyledText style={styles.contactLabel}>Location</StyledText>
                 <StyledText style={styles.contactValue}>15 Liebenberg Street{'
